@@ -1,0 +1,8 @@
+pandas
+numpy
+scikit-learn
+fastapi
+pydantic
+pytest 
+pytest-cov 
+httpx

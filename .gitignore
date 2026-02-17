@@ -1,0 +1,52 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+
+# --- Ambientes Virtuais (Venv) ---
+.venv/
+venv/
+env/
+ENV/
+
+# --- Distribuição e Build ---
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# --- Jupyter Notebooks ---
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/*
+
+# --- Dados e Modelos (Arquivos Grandes) ---
+# Ignorar CSVs para não pesar o repositório (opcional, remova se quiser versionar)
+*.csv
+files/*.csv
+Datathon/files/*.csv
+
+# Ignorar Modelos Treinados (binários grandes)
+*.pkl
+app/model/*.pkl
+models/*.pkl
+
+# --- Testes e Cobertura (Pytest/Coverage) ---
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# --- IDEs e Editores ---
+.vscode/
+.idea/
+*.swp
+
+# --- macOS ---
+.DS_Store
+
+# --- Logs e Banco de Dados Local ---
+*.log
+*.sqlite3
+
+# --- Outros ---
+__MACOSX/
