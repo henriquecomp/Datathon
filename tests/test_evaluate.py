@@ -10,11 +10,11 @@ def mock_model():
     # Simula predict_proba retornando:
     # Caso 0: 0.2 (Risco Baixo)
     # Caso 1: 0.8 (Risco Alto)
-    # Caso 2: 0.46 (Risco Alto se limiar for 0.45)
+    # Caso 2: 0.41 (Risco Alto se limiar for 0.40)
     model.predict_proba.return_value = np.array([
         [0.8, 0.2], 
         [0.2, 0.8], 
-        [0.54, 0.46]
+        [0.54, 0.41]
     ])
     # O feature_importances_ para modelos de árvore
     model.feature_importances_ = np.array([0.1, 0.2, 0.7])

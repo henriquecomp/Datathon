@@ -45,8 +45,13 @@ coverage.xml
 .DS_Store
 
 # --- Logs e Banco de Dados Local ---
+logs/ß
 *.log
 *.sqlite3
+
+# -- MLFlow
+mlruns/
+mlflow.db
 
 # --- Outros ---
 __MACOSX/

@@ -1,8 +1,15 @@
 import pandas as pd
 import joblib
+import mlflow
+import mlflow.sklearn
+import logging
 from fastapi import APIRouter, HTTPException
 from app.schemas.aluno_request import AlunoRequest
 from app.schemas.risco_response import RiscoResponse
+from prometheus_client import Counter, Histogram, Gauge
+
+# Recupera o logger
+logger = logging.getLogger(__name__)
 
 # Cria o roteador
 router = APIRouter()
@@ -10,14 +17,32 @@ router = APIRouter()
 # Limiar para resposta
 limiar_fixo = 0.40
 
+# MÉTRICAS CUSTOMIZADAS PARA O GRAFANA
+# Conta quantas predições de cada tipo foram feitas
+PREDICOES_TOTAL = Counter('modelo_predicoes_total', 'Total de predições', ['risco_detectado'])
+# Guarda a distribuição das probabilidades (bom para ver se o modelo está confiante)
+PROBABILIDADE_HISTOGRAMA = Histogram('modelo_probabilidade_risco', 'Distribuição das probabilidades geradas')
+# Guarda o valor médio das features (Acompanhamento visual de DRIFT)
+FEATURE_IAA = Gauge('feature_input_iaa', 'Valor da feature IAA recebida')
+FEATURE_IEG = Gauge('feature_input_ieg', 'Valor da feature IEG recebida')
+
 # Carregamento do Modelo
-# Carregamos aqui para estar disponível para as rotas
+# Aponta para o banco de dados local do MLflow
+mlflow.set_tracking_uri("sqlite:///mlflow.db")
+
+# Define qual modelo queremos buscar
+model_name = "Modelo_Risco_Defasagem"
+alias = "production" # Pega sempre a última versão treinada
+
 try:
-    # Verifique se o nome do arquivo na pasta models é 'model.pkl' ou 'modelo_otimizado.pkl'
-    model = joblib.load("app/model/modelo.pkl")
-    print("Modelo carregado no routes.py!")
+    model_uri = f"models:/{model_name}@{alias}"
+    logger.info(f"Aplicação iniciando... Modelo a ser carregado: {model_uri}...")   
+    
+    # Carrega o modelo diretamente do mlflow
+    model = mlflow.sklearn.load_model(model_uri)
+    logger.info(f"Aplicação iniciada! Modelo carregado: {model_uri}...")       
 except Exception as e:
-    print(f"Erro ao carregar o modelo: {e}")
+    logger.error(f"Erro ao carregar o modelo do MLflow: {e}")
     model = None
 
 # Rotas
@@ -28,8 +53,13 @@ def home():
 
 @router.post("/predict", response_model=RiscoResponse)
 def predict_risk(aluno: AlunoRequest):
+    # Previsão de risco de defasagem
     if model is None:
         raise HTTPException(status_code=500, detail="Modelo não carregado no servidor.")
+        
+    # GRAFANA: Atualiza as métricas das features recebidas (Drift)    
+    FEATURE_IAA.set(aluno.IAA)
+    FEATURE_IEG.set(aluno.IEG)    
     
     # Converter input para DataFrame
     data = {
@@ -50,6 +80,17 @@ def predict_risk(aluno: AlunoRequest):
     try:
         proba = model.predict_proba(df_input)[0][1]
         risco = 1 if proba >= limiar_fixo else 0
+
+        # -----------------------------------------------------------------
+        # GRAFANA: Grava a predição final e a probabilidade
+        # -----------------------------------------------------------------
+        PREDICOES_TOTAL.labels(risco_detectado=str(risco)).inc()
+        PROBABILIDADE_HISTOGRAMA.observe(proba)      
+
+        logger.info(
+            f"PREDIÇÃO | Aluno IAA: {aluno.IAA} | IEG: {aluno.IEG} | "
+            f"Risco: {risco} | Probabilidade: {proba:.4f} | Mensagem: {"ALERTA: Risco detectado!" if risco == 1 else "Risco baixo" }"
+        )
         
         return {
             "risco_defasagem": int(risco),
@@ -57,4 +98,19 @@ def predict_risk(aluno: AlunoRequest):
             "mensagem": "ALERTA: Risco detectado!" if risco == 1 else "Risco baixo"
         }
     except Exception as e:
+        logger.error(f"Falha na predição para o aluno {aluno.IAA}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro na predição: {str(e)}")
+    
+@router.post("/reload-model")
+def reload_model():
+    """
+    Rota administrativa para recarregar o modelo em memória sem precisar reiniciar o servidor Uvicorn.
+    """
+    global model
+    try:  
+        logger.info(f"Recarga de Modelo solicitada. Modelo a ser carregado: {model_uri}...")   
+        model = mlflow.sklearn.load_model(model_uri)
+        return {"status": "sucesso", "mensagem": "Modelo atualizado com a última versão de produção!"}
+    except Exception as e:
+        logger.error(f"Erro ao recarregar o modelo {model_uri}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao recarregar o modelo: {str(e)}")    

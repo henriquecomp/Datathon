@@ -6,3 +6,6 @@ pydantic
 pytest 
 pytest-cov 
 httpx
+mlflow
+prometheus-fastapi-instrumentator 
+prometheus-client

@@ -1,0 +1,18 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: api_passos_magicos
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: fastapi_logs
+          __path__: /var/log/api/*.log # Lê todos os logs da API

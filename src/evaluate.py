@@ -1,15 +1,18 @@
 import pandas as pd
+import mlflow
+import matplotlib.pyplot as plt
 from sklearn.metrics import classification_report, recall_score, confusion_matrix, accuracy_score, f1_score, precision_score
+from sklearn.metrics import ConfusionMatrixDisplay
 
 def evaluate_model(model, X_test, y_test, threshold=0.5):
     """
-    Calcula métricas com base em um limiar de decisão customizado.
+    Calcula métricas com base em um limiar de decisão customizado e loga no MLFlow
     
     Args:
         model: O modelo treinado.
         X_test: Features de teste.
         y_test: Target real de teste.
-        threshold (float): Limiar de corte (ex: 0.45). Se prob > threshold, é risco.
+        threshold (float): Limiar de corte (ex: 0.40). Se prob > threshold, é risco.
     """
 
     print("\n" + "="*100)
@@ -47,6 +50,16 @@ def evaluate_model(model, X_test, y_test, threshold=0.5):
     precision = precision_score(y_test, y_pred)
     f1 = f1_score(y_test, y_pred)
     cm = confusion_matrix(y_test, y_pred)
+
+    fig, ax = plt.subplots(figsize=(6, 5))
+    ConfusionMatrixDisplay.from_estimator(
+        model, X_test, y_test, 
+        ax=ax, cmap='Blues', 
+        display_labels=['Sem Risco', 'Com Risco']
+    )
+    plt.title("Matriz de Confusão")
+    mlflow.log_figure(fig, "matriz_confusao.png")
+    plt.close(fig)  
     
     print("\n" + "="*100)
     print(f"RESULTADOS DA AVALIAÇÃO DO MODELO (Limiar: {threshold})")
@@ -64,6 +77,14 @@ def evaluate_model(model, X_test, y_test, threshold=0.5):
     
     print("\nRelatório Completo:")
     print(classification_report(y_test, y_pred))
+
+    mlflow.log_param("threshold", threshold)
+    mlflow.log_metrics({
+        "accuracy": accuracy,
+        "precision": precision,
+        "recall": recall,
+        "f1": f1
+    })    
     
     return {
         "recall": recall,

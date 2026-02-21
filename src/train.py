@@ -1,18 +1,30 @@
 import joblib
 import pandas as pd
 import os
+import mlflow
+import mlflow.sklearn
+import matplotlib.pyplot as plt
+from mlflow.models.signature import infer_signature
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split, RandomizedSearchCV
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
+from sklearn.metrics import ConfusionMatrixDisplay
 from utils import load_data
 from preprocessing import clean_data
 from feature_engineering import create_features
 from evaluate import evaluate_model
 
 def run_training():
-    print("Iniciando Pipeline de Treinamento...")
+    print("Iniciando Pipeline de Treinamento com MLFLOW...")
     
+    # Cria uma pasta 'mlruns' localmente para salvar os dados
+    mlflow.set_tracking_uri("sqlite:///mlflow.db")
+    mlflow.set_experiment("PassosMagicos_Risco_Defasagem")
+
+    # Habilita o log automático (salva params, métricas e o modelo .pkl)
+    mlflow.sklearn.autolog(log_models=False, log_input_examples=False)
+
     # Definição de Caminhos
     paths = {
         '2022': 'files/PEDE2022.csv',
@@ -58,31 +70,43 @@ def run_training():
     }    
     
 
-    random_search = RandomizedSearchCV(
-        estimator=model_pipeline, 
-        param_distributions=param_dist, 
-        n_iter=10, 
-        cv=3, 
-        verbose=1, 
-        random_state=42, 
-        n_jobs=1, 
-        scoring='recall' # Otimizando para Recall
-    )
-    
-    print("   [5/6] Treinando o modelo...")
+    with mlflow.start_run() as run:
+        print(f"   [MLflow] Run iniciada. ID: {run.info.run_id}")
+        random_search = RandomizedSearchCV(
+            estimator=model_pipeline, 
+            param_distributions=param_dist, 
+            n_iter=10, 
+            cv=3, 
+            verbose=1, 
+            random_state=42, 
+            n_jobs=1, 
+            scoring='recall' # Otimizando para Recall
+        )
+        
+        print("   [5/6] Treinando o modelo...")
 
-    random_search.fit(X_train, y_train)
-    best_model = random_search.best_estimator_
-    
-    # Avaliação
-    print("   [6/6] Avaliando...")
-    evaluate_model(best_model, X_test, y_test, threshold=0.45)
-    
-    # Salvar
-    output_dir = 'app/model'
-    os.makedirs(output_dir, exist_ok=True)
-    joblib.dump(best_model, 'app/model/modelo.pkl')
-    print("\nModelo salvo em app/model/modelo.pkl")
+        random_search.fit(X_train, y_train)
+        best_model = random_search.best_estimator_
+        
+        # Avaliação
+        print("   [6/6] Avaliando...")        
+        evaluate_model(best_model, X_test, y_test, threshold=0.40)
+
+        assinatura = infer_signature(X_test, best_model.predict(X_test))
+        
+        # Grava o modelo no MLflow com a assinatura e registra oficialmente
+        mlflow.sklearn.log_model(
+            sk_model=best_model,
+            name="modelo",
+            signature=assinatura,
+            registered_model_name="Modelo_Risco_Defasagem"
+        )
+        
+        # Salvar
+        output_dir = 'app/model'
+        os.makedirs(output_dir, exist_ok=True)
+        joblib.dump(best_model, 'app/model/modelo.pkl')
+        print("\nModelo salvo em app/model/modelo.pkl")
 
 if __name__ == "__main__":
     run_training()
