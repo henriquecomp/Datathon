@@ -3,7 +3,8 @@ import joblib
 import mlflow
 import mlflow.sklearn
 import logging
-from fastapi import APIRouter, HTTPException
+import subprocess
+from fastapi import APIRouter, HTTPException, BackgroundTasks
 from app.schemas.aluno_request import AlunoRequest
 from app.schemas.risco_response import RiscoResponse
 from prometheus_client import Counter, Histogram, Gauge
@@ -44,6 +45,31 @@ try:
 except Exception as e:
     logger.error(f"Erro ao carregar o modelo do MLflow: {e}")
     model = None
+
+def executar_treinamento_em_background():
+    logger.info("Iniciando o processo de re-treinamento (executando src/train.py)...")
+    try:
+        # Chama o script Python como se estivesse no terminal
+        # capture_output=True permite-nos ler os prints do train.py e guardar no nosso log
+        resultado = subprocess.run(
+            ["python", "src/train.py"], 
+            capture_output=True, 
+            text=True, 
+            check=True
+        )
+        logger.info("Treinamento concluído com sucesso!")
+        logger.info("Para a utilização do modelo, adicione o alias @production no MLFlow e acione o endpoint /reload!")
+        
+        # Loga as mensagens que o train.py imprimiu na tela
+        for linha in resultado.stdout.split('\n'):
+            if linha.strip():
+                logger.info(f"[train.py] {linha}")
+                
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Erro ao treinar o modelo. Código de falha: {e.returncode}")
+        logger.error(f"Erro do train.py -> {e.stderr}")
+    except Exception as e:
+        logger.error(f"Falha crítica ao tentar iniciar o script de treino: {str(e)}")    
 
 # Rotas
 
@@ -101,7 +127,7 @@ def predict_risk(aluno: AlunoRequest):
         logger.error(f"Falha na predição para o aluno {aluno.IAA}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro na predição: {str(e)}")
     
-@router.post("/reload-model")
+@router.post("/reload")
 def reload_model():
     """
     Rota administrativa para recarregar o modelo em memória sem precisar reiniciar o servidor Uvicorn.
@@ -114,3 +140,19 @@ def reload_model():
     except Exception as e:
         logger.error(f"Erro ao recarregar o modelo {model_uri}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro ao recarregar o modelo: {str(e)}")    
+    
+@router.post("/retrain")
+def retrain_model(background_tasks: BackgroundTasks):
+    """
+    Endpoint administrativo para forçar o re-treinamento do modelo.
+    Executa o processo de forma assíncrona (Background Task).
+    """
+    logger.info("Requisição recebida no endpoint /retrain.")
+    
+    # Envia a função pesada para rodar em segundo plano
+    background_tasks.add_task(executar_treinamento_em_background)
+    
+    return {
+        "status": "sucesso",
+        "mensagem": "Treinamento iniciado em segundo plano. Acompanhe os logs no Grafana/Loki para ver o progresso e o resultado."
+    }    
