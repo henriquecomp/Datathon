@@ -29,10 +29,13 @@ def create_features(df):
         df['IEG_x_IAA'] = df['IEG'] * df['IAA']  # Esforço vs Autoimagem
         df['IPS_x_IDA'] = df['IPS'] * df['IDA']  # Psicológico vs Resultado    
     
-    cols_api = ['IAA', 'IEG', 'IPS', 'IDA', 'IPV', 'IEG_x_IDA', 'IEG_x_IAA', 'IPS_x_IDA']
-    X = df[cols_api]
-    y = df['alvo_risco']
+    X = df.drop(columns=[c for c in cols_to_drop if c in df.columns], errors='ignore')
+    
+    # Garante que o target não fique no X
+    if 'alvo_risco' in X.columns:
+        X = X.drop(columns=['alvo_risco'])
         
     y = df['alvo_risco']
+
     
     return X, y

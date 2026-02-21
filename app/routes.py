@@ -112,10 +112,10 @@ def predict_risk(aluno: AlunoRequest):
         # -----------------------------------------------------------------
         PREDICOES_TOTAL.labels(risco_detectado=str(risco)).inc()
         PROBABILIDADE_HISTOGRAMA.observe(proba)      
-
+        
         logger.info(
             f"PREDIÇÃO | Aluno IAA: {aluno.IAA} | IEG: {aluno.IEG} | "
-            f"Risco: {risco} | Probabilidade: {proba:.4f} | Mensagem: {"ALERTA: Risco detectado!" if risco == 1 else "Risco baixo" }"
+            f"Risco: {risco} | Probabilidade: {proba:.4f} | Mensagem: {'ALERTA: Risco detectado!' if risco == 1 else 'Risco baixo'}"
         )
         
         return {

@@ -1,6 +1,30 @@
 version: '3.8'
 
 services:
+  api:
+    build: .
+    container_name: api
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mapeamos a pasta inteira para que a API consiga ler a pasta /files ao retreinar,
+      # gravar os /logs e atualizar o mlflow.db em tempo real no seu Mac/PC
+      - ./:/app
+    depends_on:
+      - loki
+    restart: unless-stopped
+
+  mlflow:
+    build: .
+    container_name: mflow
+    ports:
+      - "5050:5000"
+    # Iniciamos a interface gráfica do MLflow na porta 5000
+    command: mlflow ui --backend-store-uri sqlite:///mlflow.db --host 0.0.0.0 --port 5000
+    volumes:
+      - ./:/app
+    restart: unless-stopped    
+
   prometheus:
     image: prom/prometheus:latest
     ports:
