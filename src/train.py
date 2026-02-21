@@ -102,11 +102,6 @@ def run_training():
             registered_model_name="Modelo_Risco_Defasagem"
         )
         
-        # Salvar
-        output_dir = 'app/model'
-        os.makedirs(output_dir, exist_ok=True)
-        joblib.dump(best_model, 'app/model/modelo.pkl')
-        print("\nModelo salvo em app/model/modelo.pkl")
-
+# pragma: no cover
 if __name__ == "__main__":
     run_training()

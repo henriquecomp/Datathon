@@ -7,48 +7,49 @@ from src.train import run_training
 @patch('src.train.clean_data')
 @patch('src.train.create_features')
 @patch('src.train.train_test_split')
-@patch('src.train.RandomizedSearchCV') # Mockamos a busca de hiperparâmetros
+@patch('src.train.RandomizedSearchCV') 
 @patch('src.train.evaluate_model')
 @patch('src.train.joblib.dump')
-@patch('os.makedirs') # Para não criar pastas de verdade
-def test_run_training_pipeline(mock_makedirs, mock_dump, mock_eval, mock_search, 
+@patch('src.train.mlflow')
+@patch('src.train.infer_signature') 
+@patch('os.makedirs') 
+def test_run_training_pipeline(mock_makedirs, mock_infer, mock_mlflow, mock_dump, mock_eval, mock_search, 
                                mock_split, mock_features, mock_clean, mock_load):
     
-    # Configurando os retornos dos Mocks para o fluxo seguir
+    # 1. Configurando os retornos dos Mocks para o fluxo seguir
     mock_load.return_value = pd.DataFrame({'raw': [1]})
     mock_clean.return_value = pd.DataFrame({'clean': [1]})
-    mock_features.return_value = (pd.DataFrame({'X': [1]}), pd.Series([1])) # X, y
+    mock_features.return_value = (pd.DataFrame({'X': [1]}), pd.Series([1])) 
     
-    # Mock do train_test_split retornando 4 valores
     mock_split.return_value = (MagicMock(), MagicMock(), MagicMock(), MagicMock())
     
-    # Mock do objeto RandomizedSearchCV e seu .fit
+    # 2. Mock do objeto RandomizedSearchCV e seu .fit
     mock_search_instance = mock_search.return_value
-    mock_search_instance.best_estimator_ = "Modelo Treinado"
     
-    # Executa a função principal
+    # 3. Criamos um mock real para o modelo para suportar o .predict() da assinatura
+    mock_best_estimator = MagicMock()
+    mock_best_estimator.predict.return_value = [0] 
+    mock_search_instance.best_estimator_ = mock_best_estimator
+    
+    # Act
     run_training()
     
-    # Asserts: Verifica se cada etapa foi chamada
+    # Assert - Verifica se cada etapa foi chamada corretamente
     mock_load.assert_called_once()
     mock_clean.assert_called_once()
     mock_features.assert_called_once()
     mock_split.assert_called_once()
-    
-    # Verifica se o fit foi chamado
     mock_search_instance.fit.assert_called_once()
-    
-    # Verifica se avaliou o modelo
     mock_eval.assert_called_once()
     
-    # Verifica se salvou o modelo
-    mock_dump.assert_called_once()
-    args, _ = mock_dump.call_args
-    assert args[0] == "Modelo Treinado" # O objeto salvo deve ser o best_estimator
-    assert "app/model" in args[1] or "models" in args[1] # Verifica o caminho
+    # Garante que o MLflow inferiu a assinatura e registrou o modelo
+    mock_infer.assert_called_once()
+    mock_mlflow.sklearn.log_model.assert_called_once()
+    
 
 @patch('src.train.load_data')
-def test_run_training_file_error(mock_load):
+@patch('src.train.mlflow') # Mockamos o MLflow aqui também para não criar o banco de dados
+def test_run_training_file_error(mock_mlflow, mock_load):
     # Arrange
     mock_load.side_effect = FileNotFoundError("Arquivo sumiu")
     

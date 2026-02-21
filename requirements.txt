@@ -9,3 +9,4 @@ httpx
 mlflow
 prometheus-fastapi-instrumentator 
 prometheus-client
+matplotlib

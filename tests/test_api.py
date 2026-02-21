@@ -3,9 +3,11 @@ from fastapi.testclient import TestClient
 from unittest.mock import MagicMock, patch
 import importlib
 import sys
+import subprocess
 
 from app.main import app
 from app import routes 
+from app.routes import executar_treinamento_em_background
 
 client = TestClient(app)
 
@@ -72,15 +74,88 @@ def test_prediction_internal_error():
 
 def test_model_loading_exception():
     # Arrange & Act & Assert
-    # Simula falha no load (arquivo sumiu)    
-    with patch('joblib.load', side_effect=FileNotFoundError("Arquivo sumiu")):
-        importlib.reload(routes) # Recarrega o módulo routes
-        assert routes.model is None
+    
+    # Mockamos mlflow.sklearn.load_model    
+    with patch('mlflow.sklearn.load_model', side_effect=Exception("Erro MLflow")):
+                
+        with patch.dict('sys.modules', {'prometheus_client': MagicMock()}):
+            importlib.reload(routes) 
+            assert routes.model is None
 
     # LIMPEZA SEGURA (TEARDOWN)
-    # Recarregamos o módulo forçando o joblib.load a funcionar (MOCKADO),
-    # para não depender se o arquivo real existe ou não no disco.
-    with patch('joblib.load', return_value="Modelo Recuperado"):
-        importlib.reload(routes)
+    with patch('mlflow.sklearn.load_model', return_value="Modelo Recuperado"):
+        
+        with patch.dict('sys.modules', {'prometheus_client': MagicMock()}):
+            importlib.reload(routes)
+            
+    assert routes.model == "Modelo Recuperado"
+
+def test_reload_model_success():
+    # Arrange & Act
+    with patch('app.routes.mlflow.sklearn.load_model', return_value="Novo Modelo Atualizado"):
+        response = client.post("/reload")
+        
+    # Assert
+    assert response.status_code == 200
+    assert response.json()["status"] == "sucesso"
+    assert "Modelo atualizado" in response.json()["mensagem"]
+    assert routes.model == "Novo Modelo Atualizado"
+
+def test_reload_model_exception():
+    # Arrange & Act
+    with patch('app.routes.mlflow.sklearn.load_model', side_effect=Exception("Conexão com MLflow perdida")):
+        response = client.post("/reload")
+        
+    # Assert
+    assert response.status_code == 500
+    assert "Erro ao recarregar o modelo" in response.json()["detail"]
+
+
+def test_retrain_endpoint():
+    # O TestClient do FastAPI gerencia BackgroundTasks automaticamente
+    response = client.post("/retrain")
     
-    assert routes.model is not None
+    assert response.status_code == 200
+    assert response.json()["status"] == "sucesso"
+    assert "Treinamento iniciado" in response.json()["mensagem"]
+
+@patch('app.routes.subprocess.run')
+def test_executar_treinamento_em_background_success(mock_subprocess_run):
+    # Simula o subprocesso do python executando com sucesso
+    mock_result = MagicMock()
+    mock_result.stdout = "Iniciando...\nModelo salvo com sucesso no MLflow!"
+    mock_subprocess_run.return_value = mock_result
+    
+    # Act
+    executar_treinamento_em_background()
+    
+    # Assert
+    mock_subprocess_run.assert_called_once()
+    # Verifica se os argumentos passados para o subprocess.run estão corretos
+    args, kwargs = mock_subprocess_run.call_args
+    assert args[0] == ["python", "src/train.py"]
+    assert kwargs['capture_output'] is True
+
+@patch('app.routes.subprocess.run')
+def test_executar_treinamento_em_background_calledprocesserror(mock_subprocess_run):
+    # Simula o script de treino quebrando (ex: erro de sintaxe, falta de memória)
+    mock_subprocess_run.side_effect = subprocess.CalledProcessError(
+        returncode=1, cmd=["python", "src/train.py"], stderr="Traceback: Memory Error"
+    )
+    
+    # Act - A função tem um try/except, então não deve estourar erro para fora
+    executar_treinamento_em_background()
+    
+    # Assert
+    mock_subprocess_run.assert_called_once()
+
+@patch('app.routes.subprocess.run')
+def test_executar_treinamento_em_background_general_exception(mock_subprocess_run):
+    # Simula uma exceção genérica no Python (ex: falta de permissão no sistema operacional)
+    mock_subprocess_run.side_effect = Exception("Permissão negada")
+    
+    # Act
+    executar_treinamento_em_background()
+    
+    # Assert
+    mock_subprocess_run.assert_called_once()    
