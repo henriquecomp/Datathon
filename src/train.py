@@ -9,6 +9,8 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split, RandomizedSearchCV
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer, make_column_selector
+from sklearn.preprocessing import OneHotEncoder
 from sklearn.metrics import ConfusionMatrixDisplay
 from utils import load_data
 from preprocessing import clean_data
@@ -46,41 +48,61 @@ def run_training():
     print("   [3/6] Engenharia de Features...")
     X, y = create_features(df_clean)
     
-    print(f"         Features finais: {list(X.columns)}")
+    print(f"         Features finais: {len(X.columns)} colunas identificadas.")
 
     # Split de Dados
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+    
+    # Transformador para variáveis numéricas (preenche nulos com a mediana)
+    numeric_transformer = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='median'))
+    ])
 
-    # Criação do Pipeline
-    # Imputer: Preenche nulos com a mediana
-    # Model: O seu Random Forest
+    # Transformador para variáveis categóricas (texto)
+    # Preenche nulos com o valor mais frequente (moda) e converte texto para números (One-Hot)
+    categorical_transformer = Pipeline(steps=[
+        ('imputer', SimpleImputer(strategy='most_frequent')),
+        ('onehot', OneHotEncoder(handle_unknown='ignore'))
+    ])
+
+    # O ColumnTransformer aplica as regras corretas usando seletores dinâmicos
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('num', numeric_transformer, make_column_selector(dtype_exclude="object")),
+            ('cat', categorical_transformer, make_column_selector(dtype_include="object"))
+        ])
+
+    # Criação do Pipeline Final
     model_pipeline = Pipeline([
-        ("imputer", SimpleImputer(strategy="median")),
-        ('classifier', RandomForestClassifier(n_estimators=100, class_weight='balanced', random_state=42))
+        ('preprocessor', preprocessor),
+        ('classifier', RandomForestClassifier(random_state=42))
     ])
 
     # Otimização (Random Search)
     print("   [4/6] Buscando melhores hiperparâmetros...")
     
+    # Grade de hiperparâmetros expandida para extrair a máxima performance
     param_dist = {
-        'classifier__n_estimators': [100, 200, 300],
-        'classifier__max_depth': [10, 20, None],
+        'classifier__n_estimators': [100, 200, 300, 500],
+        'classifier__max_depth': [10, 20, 30, None],
         'classifier__min_samples_leaf': [1, 2, 4],
+        'classifier__max_features': ['sqrt', 'log2'], # Importante para diversificar as árvores
         'classifier__class_weight': ['balanced', 'balanced_subsample']
     }    
     
-
     with mlflow.start_run() as run:
         print(f"   [MLflow] Run iniciada. ID: {run.info.run_id}")
+        
+        # Aumentamos o n_iter para 20 para testar mais combinações e encontrar o melhor modelo
         random_search = RandomizedSearchCV(
             estimator=model_pipeline, 
             param_distributions=param_dist, 
-            n_iter=10, 
+            n_iter=20, 
             cv=3, 
             verbose=1, 
             random_state=42, 
-            n_jobs=1, 
-            scoring='recall' # Otimizando para Recall
+            n_jobs=-1, # Usa todos os núcleos do processador para treinar mais rápido
+            scoring='recall' # Otimizando para Recall (encontrar o maior número possível de alunos em risco)
         )
         
         print("   [5/6] Treinando o modelo...")
@@ -106,7 +128,7 @@ def run_training():
         output_dir = 'app/model'
         os.makedirs(output_dir, exist_ok=True)
         joblib.dump(best_model, 'app/model/modelo.pkl')
-        print("\nModelo salvo em app/model/modelo.pkl")
+        print("\nModelo salvo com sucesso em app/model/modelo.pkl")
 
 if __name__ == "__main__":
     run_training()

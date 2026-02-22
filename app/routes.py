@@ -4,10 +4,12 @@ import mlflow
 import mlflow.sklearn
 import logging
 import subprocess
+import re
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from app.schemas.aluno_request import AlunoRequest
 from app.schemas.risco_response import RiscoResponse
 from prometheus_client import Counter, Histogram, Gauge
+from src.feature_engineering import extrair_fase
 
 # Recupera o logger
 logger = logging.getLogger(__name__)
@@ -47,7 +49,7 @@ except Exception as e:
     model = None
 
 def executar_treinamento_em_background():
-    logger.info("Iniciando o processo de re-treinamento (executando src/train.py)...")
+    logger.info("Iniciando o processo de retreinamento (executando src/train.py)...")
     try:
         # Chama o script Python como se estivesse no terminal
         # capture_output=True permite-nos ler os prints do train.py e guardar no nosso log
@@ -93,14 +95,26 @@ def predict_risk(aluno: AlunoRequest):
         "IEG": [aluno.IEG],
         "IPS": [aluno.IPS],
         "IDA": [aluno.IDA],
-        "IPV": [aluno.IPV]
+        "IPV": [aluno.IPV],
+        "Idade": [aluno.Idade],
+        "Fase": [aluno.Fase],
+        "Pedra": [aluno.Pedra], # Usado apenas para calcular a pedra numérica
+        "Instituição de ensino": [aluno.Instituicao_de_ensino],
+        "Gênero": [aluno.Genero]
     }
     df_input = pd.DataFrame(data)
     
-    # Engenharia de Features (idêntica ao treinamento)
+    # Engenharia de Features
     df_input['IEG_x_IDA'] = df_input['IEG'] * df_input['IDA']
     df_input['IEG_x_IAA'] = df_input['IEG'] * df_input['IAA']
     df_input['IPS_x_IDA'] = df_input['IPS'] * df_input['IDA']
+
+    # Conversão da pedra para número
+    pedra_map = {'Quartzo': 1, 'Ágata': 2, 'Ametista': 3, 'Topázio': 4}
+    # Se a pedra vier incorreta na requisição, assume 1
+    df_input['Pedra_Num'] = df_input['Pedra'].map(pedra_map).fillna(1)    
+
+    df_input['Fase_Num'] = df_input['Fase'].apply(extrair_fase)
     
     # Predição
     try:
@@ -114,7 +128,7 @@ def predict_risk(aluno: AlunoRequest):
         PROBABILIDADE_HISTOGRAMA.observe(proba)      
         
         logger.info(
-            f"PREDIÇÃO | Aluno IAA: {aluno.IAA} | IEG: {aluno.IEG} | "
+            f"PREDIÇÃO | Dados: {df_input} "
             f"Risco: {risco} | Probabilidade: {proba:.4f} | Mensagem: {'ALERTA: Risco detectado!' if risco == 1 else 'Risco baixo'}"
         )
         
