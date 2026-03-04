@@ -12,6 +12,7 @@ from app.schemas.aluno_request import AlunoRequest
 from app.schemas.risco_response import RiscoResponse
 from prometheus_client import Counter, Histogram, Gauge
 from src.feature_engineering import extrair_fase
+from app.config import MLFLOW_TRACKING_URI, LIMIAR_FIXO
 
 # Recupera o logger
 logger = logging.getLogger(__name__)
@@ -27,8 +28,8 @@ def _normalizar_texto(val: str) -> str:
     s = unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode("utf-8")
     return s.upper()
 
-# Limiar para resposta
-limiar_fixo = 0.40
+# Limiar para resposta (lido de variável de ambiente em app.config)
+limiar_fixo = LIMIAR_FIXO
 
 # MÉTRICAS CUSTOMIZADAS PARA O GRAFANA
 # Conta quantas predições de cada tipo foram feitas
@@ -39,9 +40,8 @@ PROBABILIDADE_HISTOGRAMA = Histogram('modelo_probabilidade_risco', 'Distribuiç�
 FEATURE_IAA = Gauge('feature_input_iaa', 'Valor da feature IAA recebida')
 FEATURE_IEG = Gauge('feature_input_ieg', 'Valor da feature IEG recebida')
 
-# Carregamento do Modelo
-# Aponta para o banco de dados local do MLflow
-mlflow.set_tracking_uri("sqlite:///mlflow.db")
+# Carregamento do Modelo (URI via variável de ambiente)
+mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
 
 # Define qual modelo queremos buscar
 model_name = "Modelo_Risco_Defasagem"

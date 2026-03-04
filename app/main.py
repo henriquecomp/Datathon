@@ -4,6 +4,9 @@ from prometheus_fastapi_instrumentator import Instrumentator
 import logging
 import time
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Cria a pasta de logs se não existir
 os.makedirs("logs", exist_ok=True)

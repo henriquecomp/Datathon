@@ -12,3 +12,4 @@ prometheus-fastapi-instrumentator
 prometheus-client
 matplotlib
 uvicorn
+python-dotenv

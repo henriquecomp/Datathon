@@ -48,6 +48,7 @@ coverage.xml
 logs/ß
 *.log
 *.sqlite3
+.env
 
 # -- MLFlow
 mlruns/

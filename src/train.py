@@ -16,12 +16,17 @@ from src.utils import load_data
 from src.preprocessing import clean_data
 from src.feature_engineering import create_features
 from src.evaluate import evaluate_model
+from app.config import MLFLOW_TRACKING_URI, LIMIAR_FIXO
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 def run_training():
     print("Iniciando Pipeline de Treinamento com MLFLOW...")
     
     # Cria uma pasta 'mlruns' localmente para salvar os dados
-    mlflow.set_tracking_uri("sqlite:///mlflow.db")
+    mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
     mlflow.set_experiment("PassosMagicos_Risco_Defasagem")
 
     # Habilita o log automático (salva params, métricas e o modelo .pkl)
@@ -110,9 +115,9 @@ def run_training():
         random_search.fit(X_train, y_train)
         best_model = random_search.best_estimator_
         
-        # Avaliação
-        print("   [6/6] Avaliando...")        
-        evaluate_model(best_model, X_test, y_test, threshold=0.40)
+        print("   [6/6] Avaliando...")
+        # Avaliação (limiar lido de variável de ambiente)
+        evaluate_model(best_model, X_test, y_test, threshold=LIMIAR_FIXO)
 
         assinatura = infer_signature(X_test, best_model.predict(X_test))
         
