@@ -100,6 +100,7 @@ def predict_risk(aluno: AlunoRequest):
     FEATURE_IEG.set(aluno.IEG)    
     
     # Converter input para DataFrame (normalizar categorias como no treino)
+    # Pedra é leakage (derivada do INDE) e Fase é substituída por Fase_Num
     data = {
         "IAA": [aluno.IAA],
         "IEG": [aluno.IEG],
@@ -107,8 +108,6 @@ def predict_risk(aluno: AlunoRequest):
         "IDA": [aluno.IDA],
         "IPV": [aluno.IPV],
         "Idade": [aluno.Idade],
-        "Fase": [_normalizar_texto(aluno.Fase)],
-        "Pedra": [_normalizar_texto(aluno.Pedra)],
         "Instituicao_de_ensino": [_normalizar_texto(aluno.Instituicao_de_ensino)],
         "Genero": [_normalizar_texto(aluno.Genero)],
     }
@@ -119,7 +118,7 @@ def predict_risk(aluno: AlunoRequest):
     df_input['IEG_x_IAA'] = df_input['IEG'] * df_input['IAA']
     df_input['IPS_x_IDA'] = df_input['IPS'] * df_input['IDA']
 
-    df_input['Fase_Num'] = df_input['Fase'].apply(extrair_fase)
+    df_input['Fase_Num'] = extrair_fase(_normalizar_texto(aluno.Fase))
     
     # Predição
     try:

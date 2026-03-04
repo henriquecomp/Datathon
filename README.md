@@ -1,4 +1,4 @@
-# Previsão de Risco de Defasagem Escolar -- Passos Mágicos
+# Previsão de Risco de Defasagem Escolar - Passos Mágicos
 
 ---
 
@@ -29,7 +29,8 @@ Para maximizar o recall sem sacrificar totalmente a precisão:
 - O modelo é otimizado via `RandomizedSearchCV` com `scoring='recall'`.
 - Utilizamos um **limiar de decisão de 0.40** (em vez do padrão 0.50), tornando o modelo mais sensível a casos de risco.
 - O `class_weight='balanced'` compensa o desbalanceamento natural das classes.
-- Colunas com **data leakage** confirmado (INDE, IAN) são removidas para garantir que o modelo generalize corretamente.
+- Colunas com **data leakage** confirmado (INDE, IAN, Pedra) são removidas para garantir que o modelo generalize corretamente. A coluna `Pedra` é derivada diretamente das faixas do INDE, portanto carrega a mesma informação vazada.
+- A coluna `Fase` (categórica) é substituída por `Fase_Num` (numérica), evitando duplicação de informação no modelo.
 
 Com essas estratégias, o modelo atinge recall acima de 90% no conjunto de teste, o que o torna confiável para uso em produção como ferramenta de apoio à decisão.
 
@@ -57,16 +58,16 @@ Com essas estratégias, o modelo atinge recall acima de 90% no conjunto de teste
 │   ├── main.py                 # Aplicação principal (startup, middleware, logging)
 │   ├── routes.py               # Endpoints (/predict, /reload, /retrain, /metrics)
 │   ├── schemas/                # Schemas Pydantic
-│   │   ├── aluno_request.py    # Payload de entrada (AlunoRequest)
+│   │   ├── aluno_request.py    # Payload de entrada (AlunoRequest) com validação
 │   │   └── risco_response.py   # Payload de saída (RiscoResponse)
 │   └── model/                  # Modelo .pkl (gerado após treinamento)
 ├── src/                        # Pipeline de ML
 │   ├── utils.py                # Carregamento e unificação dos CSVs (2022–2024)
 │   ├── preprocessing.py        # Limpeza, conversão de tipos, normalização de texto
-│   ├── feature_engineering.py  # Criação do target, interações, Fase_Num
+│   ├── feature_engineering.py  # Criação do target, interações, Fase_Num, remoção de leakage
 │   ├── train.py                # Treinamento com RandomizedSearchCV + MLflow
 │   └── evaluate.py             # Métricas, importância de features, matriz de confusão
-├── tests/                      # Testes unitários (27 testes, 97% cobertura)
+├── tests/                      # Testes unitários (35 testes, 97% cobertura)
 │   ├── conftest.py             # Fixtures globais (bloqueio do MLflow em testes)
 │   ├── test_api.py             # Testes dos endpoints da API
 │   ├── test_utils.py           # Testes de carregamento de dados
@@ -152,11 +153,11 @@ docker compose up -d --build
 ### Testes
 
 ```bash
-# Testes unitários (27 testes)
+# Testes unitários (32 testes)
 python -m pytest tests/ -v --ignore=tests/test_model.py
 
 # Com cobertura (97%)
-python -m pytest tests/ -v --cov=app --cov=src --ignore=tests/test_model.py
+python -m pytest tests/ -v --cov=app --cov=src --cov-report=term-missing --ignore=tests/test_model.py
 
 # Teste de integração do modelo (requer modelo treinado)
 python -m pytest tests/test_model.py -v
@@ -191,9 +192,8 @@ curl -X POST http://localhost:8000/predict \
     "IPV": 7.0,
     "Idade": 15,
     "Fase": "8",
-    "Pedra": "AGATA",
     "Instituicao_de_ensino": "Escola Publica",
-    "Genero": "F"
+    "Genero": "Masculino"
   }'
 ```
 
@@ -267,7 +267,8 @@ curl -X POST http://localhost:8000/retrain
 - **Target**: `alvo_risco = 1` se `Defasagem < 0`, caso contrário `0`.
 - **Interações numéricas**: `IEG × IDA` (esforço vs resultado), `IEG × IAA` (esforço vs autoimagem), `IPS × IDA` (psicológico vs resultado).
 - **Conversão de Fase**: extrai número da string (ex: `"FASE 8"` -> `8`, `"ALFA"` -> `0`).
-- **Remoção de leakage**: elimina `INDE`, `IAN`, `Ano_Base` e colunas identificadoras (RA, Nome, etc.).
+- **Remoção de leakage**: elimina `INDE`, `IAN`, `Pedra` (derivada das faixas do INDE), `Ano_Base` e colunas identificadoras (RA, Nome, etc.).
+- **Remoção de duplicação**: a coluna categórica `Fase` é removida após a criação de `Fase_Num`, evitando que a mesma informação entre no modelo duas vezes (via OneHotEncoder e como variável numérica).
 
 ### 5.4 Treinamento e Validação (`src/train.py`)
 
@@ -289,12 +290,13 @@ curl -X POST http://localhost:8000/retrain
 ### 5.6 Pós-processamento (Inferência na API)
 
 - Categorias normalizadas (NFKD, ASCII, UPPER) para manter consistência com o treino.
-- Features de interação recriadas no momento da predição.
+- Features de interação recriadas no momento da predição (`IEG×IDA`, `IEG×IAA`, `IPS×IDA`, `Fase_Num`).
+- `Pedra` não é solicitada na API (leakage). `Fase` é convertida em `Fase_Num` e não entra como categórica.
 - Limiar de decisão configurável via variável de ambiente `LIMIAR_FIXO`.
 
 ---
 
-## Monitoramento Contínuo
+## 6. Monitoramento Contínuo
 
 O monitoramento é implementado com 4 componentes orquestrados via Docker Compose:
 

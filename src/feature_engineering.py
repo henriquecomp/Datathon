@@ -14,6 +14,10 @@ def create_features(df):
     if "Defasagem" in df.columns:
         df["alvo_risco"] = np.where(df["Defasagem"] < 0, 1, 0)
 
+    # Padronização do Gênero: unifica MENINO/MENINA em MASCULINO/FEMININO
+    if "Genero" in df.columns:
+        df["Genero"] = df["Genero"].replace({"MENINO": "MASCULINO", "MENINA": "FEMININO"})
+
     # Criação Nuances de Comportamento
     if all(c in df.columns for c in ["IEG", "IDA", "IAA", "IPS"]):
         df["IEG_x_IDA"] = df["IEG"] * df["IDA"]  # Esforço vs Resultado
@@ -32,6 +36,8 @@ def create_features(df):
         "Nome",
         "Nome Anonimizado",
         "Data de Nasc",
+        "Pedra",  # Leakage: Pedra é derivada diretamente das faixas do INDE
+        "Fase",   # Substituída por Fase_Num (evita duplicação de informação)
     ]
 
     # Removemos INDE e IAN (Vazamento de dados confirmados)

@@ -30,8 +30,10 @@ def clean_data(df):
     
     for col in numeric_cols:
         if col in df.columns:
-            # Transforma em string, remove ponto de milhar, troca vírgula por decimal
-            df[col] = df[col].astype(str).str.replace('.', '', regex=False).str.replace(',', '.', regex=False)        
+            col_str = df[col].astype(str)
+            has_comma = col_str.str.contains(',', na=False)
+            br_converted = col_str.str.replace('.', '', regex=False).str.replace(',', '.', regex=False)
+            df[col] = col_str.where(~has_comma, br_converted)
             df[col] = pd.to_numeric(df[col], errors='coerce')
 
     # Transforma Idades incorretas e notas erradas em nulo (NaN)

@@ -17,18 +17,28 @@ def test_create_features_success():
             "Ano_Base": [2022, 2023],
             "INDE": [1, 1],
             "IAN": [1, 1],
-            "Fase": ["8", "ALFA"],  # Adicionado para testar a extração
+            "Fase": ["8", "ALFA"],
+            "Pedra": ["AGATA", "TOPAZIO"],
+            "Genero": ["MENINO", "MENINA"],
         }
     )
 
     # Act
     X, y = create_features(df)
 
-    # Assert
+    # Assert — leakage e identificadores removidos
     assert "Defasagem" not in X.columns
     assert "Ano_Base" not in X.columns
     assert "INDE" not in X.columns
     assert "IAN" not in X.columns
+    assert "Pedra" not in X.columns   # Leakage: derivada do INDE
+    assert "Fase" not in X.columns    # Substituída por Fase_Num
+
+    # Assert — Genero padronizado (MENINO→MASCULINO, MENINA→FEMININO)
+    assert X["Genero"].iloc[0] == "MASCULINO"
+    assert X["Genero"].iloc[1] == "FEMININO"
+
+    # Assert — features criadas
     assert "IEG_x_IDA" in X.columns
     assert X["IEG_x_IDA"].iloc[0] == 2.0 * 4.0
     assert "Fase_Num" in X.columns

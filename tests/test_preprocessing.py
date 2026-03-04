@@ -18,6 +18,9 @@ def test_clean_data_conversion():
 
     # Assert
     assert df_clean["IAA"].dtype == float or df_clean["IAA"].dtype == np.float64
+    assert df_clean["IAA"].iloc[0] == 5.5
+    assert df_clean["IAA"].iloc[1] == 7.0
+    assert df_clean["IAA"].iloc[2] == 8.1
     assert df_clean["IEG"].iloc[1] == 0.0
     assert pd.isna(df_clean["IEG"].iloc[2])
     assert df_clean["Defasagem"].iloc[0] == -1.0
