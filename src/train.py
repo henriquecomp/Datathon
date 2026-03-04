@@ -3,7 +3,6 @@ import pandas as pd
 import os
 import mlflow
 import mlflow.sklearn
-import matplotlib.pyplot as plt
 from mlflow.models.signature import infer_signature
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split, RandomizedSearchCV
@@ -11,7 +10,6 @@ from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer, make_column_selector
 from sklearn.preprocessing import OneHotEncoder
-from sklearn.metrics import ConfusionMatrixDisplay
 from src.utils import load_data
 from src.preprocessing import clean_data
 from src.feature_engineering import create_features
