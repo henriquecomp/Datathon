@@ -12,10 +12,10 @@ from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer, make_column_selector
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.metrics import ConfusionMatrixDisplay
-from utils import load_data
-from preprocessing import clean_data
-from feature_engineering import create_features
-from evaluate import evaluate_model
+from src.utils import load_data
+from src.preprocessing import clean_data
+from src.feature_engineering import create_features
+from src.evaluate import evaluate_model
 
 def run_training():
     print("Iniciando Pipeline de Treinamento com MLFLOW...")

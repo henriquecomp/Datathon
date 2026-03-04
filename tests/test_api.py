@@ -182,14 +182,14 @@ def test_executar_treinamento_em_background_success(mock_subprocess_run):
 
     mock_subprocess_run.assert_called_once()
     args, kwargs = mock_subprocess_run.call_args
-    assert args[0] == ["python", "src/train.py"]
+    assert args[0] == [sys.executable, "-m", "src.train"]
     assert kwargs["capture_output"] is True
 
 
 @patch("app.routes.subprocess.run")
 def test_executar_treinamento_em_background_calledprocesserror(mock_subprocess_run):
     mock_subprocess_run.side_effect = subprocess.CalledProcessError(
-        returncode=1, cmd=["python", "src/train.py"], stderr="Traceback: Memory Error"
+        returncode=1, cmd=[sys.executable, "-m", "src.train"], stderr="Traceback: Memory Error"
     )
 
     executar_treinamento_em_background()

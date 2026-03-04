@@ -37,13 +37,13 @@ def test_load_data_missing_defasagem():
 
 
 def test_load_data_fallback_comma_separator():
-    # Arrange: Força o primeiro read_csv (ponto e vírgula) a falhar para testar o fallback (vírgula)
+    # Arrange: Força o primeiro read_csv (ponto e vírgula) a falhar com ParserError para testar o fallback (vírgula)
     mock_df = pd.DataFrame({"IAA": [5.5], "IEG": [6.0], "Defasagem": [-1.0]})
     paths = {"2022": "dummy.csv"}
 
-    # Simula erro na 1ª chamada, retorna dataframe na 2ª
     with patch(
-        "pandas.read_csv", side_effect=[Exception("Erro de separador"), mock_df]
+        "pandas.read_csv",
+        side_effect=[pd.errors.ParserError("Erro de separador"), mock_df],
     ):
         df_result = load_data(paths)
         assert "Defasagem" in df_result.columns

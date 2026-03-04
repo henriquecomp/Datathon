@@ -14,7 +14,7 @@ def mock_model():
 
 
 @patch("src.evaluate.mlflow")
-@patch("src.evaluate.ConfusionMatrixDisplay.from_estimator")
+@patch("src.evaluate.ConfusionMatrixDisplay.from_predictions")
 def test_evaluate_model_metrics(mock_cmd, mock_mlflow, mock_model):
     X_test = pd.DataFrame({"col1": [1, 2, 3], "col2": [4, 5, 6], "col3": [7, 8, 9]})
     y_test = pd.Series([0, 1, 1])
@@ -31,7 +31,7 @@ def test_evaluate_model_metrics(mock_cmd, mock_mlflow, mock_model):
 
 
 @patch("src.evaluate.mlflow")
-@patch("src.evaluate.ConfusionMatrixDisplay.from_estimator")
+@patch("src.evaluate.ConfusionMatrixDisplay.from_predictions")
 def test_evaluate_model_threshold_influence(mock_cmd, mock_mlflow, mock_model):
     X_test = pd.DataFrame({"col1": [1, 2, 3], "col2": [4, 5, 6], "col3": [7, 8, 9]})
     y_test = pd.Series([0, 1, 1])
@@ -40,7 +40,7 @@ def test_evaluate_model_threshold_influence(mock_cmd, mock_mlflow, mock_model):
 
 
 @patch("src.evaluate.mlflow")
-@patch("src.evaluate.ConfusionMatrixDisplay.from_estimator")
+@patch("src.evaluate.ConfusionMatrixDisplay.from_predictions")
 def test_evaluate_model_with_pipeline_and_no_importance(mock_cmd, mock_mlflow):
     # Simula um Pipeline real onde o classificador NÃO tem feature_importances (ex: SVM)
     pipeline_mock = MagicMock()

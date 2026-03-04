@@ -4,7 +4,9 @@ import mlflow
 import mlflow.sklearn
 import logging
 import subprocess
-import re
+import os
+import sys
+import unicodedata
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from app.schemas.aluno_request import AlunoRequest
 from app.schemas.risco_response import RiscoResponse
@@ -16,6 +18,14 @@ logger = logging.getLogger(__name__)
 
 # Cria o roteador
 router = APIRouter()
+
+def _normalizar_texto(val: str) -> str:
+    """Normaliza texto como no treino (clean_data): NFKD, ascii, upper, strip."""
+    if val is None or (isinstance(val, float) and pd.isna(val)):
+        return ""
+    s = str(val).strip()
+    s = unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode("utf-8")
+    return s.upper()
 
 # Limiar para resposta
 limiar_fixo = 0.40
@@ -54,10 +64,11 @@ def executar_treinamento_em_background():
         # Chama o script Python como se estivesse no terminal
         # capture_output=True permite-nos ler os prints do train.py e guardar no nosso log
         resultado = subprocess.run(
-            ["python", "src/train.py"], 
-            capture_output=True, 
-            text=True, 
-            check=True
+            [sys.executable, "-m", "src.train"],
+            capture_output=True,
+            text=True,
+            check=True,
+            cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
         )
         logger.info("Treinamento concluído com sucesso!")
         logger.info("Para a utilização do modelo, adicione o alias @production no MLFlow e acione o endpoint /reload!")
@@ -89,7 +100,7 @@ def predict_risk(aluno: AlunoRequest):
     FEATURE_IAA.set(aluno.IAA)
     FEATURE_IEG.set(aluno.IEG)    
     
-    # Converter input para DataFrame
+    # Converter input para DataFrame (normalizar categorias como no treino)
     data = {
         "IAA": [aluno.IAA],
         "IEG": [aluno.IEG],
@@ -97,10 +108,10 @@ def predict_risk(aluno: AlunoRequest):
         "IDA": [aluno.IDA],
         "IPV": [aluno.IPV],
         "Idade": [aluno.Idade],
-        "Fase": [aluno.Fase],
-        "Pedra": [aluno.Pedra], # Usado apenas para calcular a pedra numérica
-        "Instituição de ensino": [aluno.Instituicao_de_ensino],
-        "Gênero": [aluno.Genero]
+        "Fase": [_normalizar_texto(aluno.Fase)],
+        "Pedra": [_normalizar_texto(aluno.Pedra)],
+        "Instituicao_de_ensino": [_normalizar_texto(aluno.Instituicao_de_ensino)],
+        "Genero": [_normalizar_texto(aluno.Genero)],
     }
     df_input = pd.DataFrame(data)
     
@@ -108,11 +119,6 @@ def predict_risk(aluno: AlunoRequest):
     df_input['IEG_x_IDA'] = df_input['IEG'] * df_input['IDA']
     df_input['IEG_x_IAA'] = df_input['IEG'] * df_input['IAA']
     df_input['IPS_x_IDA'] = df_input['IPS'] * df_input['IDA']
-
-    # Conversão da pedra para número
-    pedra_map = {'Quartzo': 1, 'Ágata': 2, 'Ametista': 3, 'Topázio': 4}
-    # Se a pedra vier incorreta na requisição, assume 1
-    df_input['Pedra_Num'] = df_input['Pedra'].map(pedra_map).fillna(1)    
 
     df_input['Fase_Num'] = df_input['Fase'].apply(extrair_fase)
     

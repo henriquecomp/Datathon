@@ -33,7 +33,6 @@ def evaluate_model(model, X_test, y_test, threshold=0.5):
     print("IMPORTANCIA DAS FEATURES E INVESTIGAÇÃO DE POSSÍVEL VAZAMENTO DE DADOS:")
     print("=" * 100)
 
-    # Verifica se é um Pipeline e extrai o classificador e os nomes corretos das features geradas
     classifier = model
     feature_names = X_test.columns
 
@@ -42,7 +41,6 @@ def evaluate_model(model, X_test, y_test, threshold=0.5):
             classifier = model.named_steps["classifier"]
         if "preprocessor" in model.named_steps:
             try:
-                # Extrai os nomes das colunas após o OneHotEncoding (ex: de 13 para 104)
                 feature_names = model.named_steps[
                     "preprocessor"
                 ].get_feature_names_out()
@@ -56,7 +54,6 @@ def evaluate_model(model, X_test, y_test, threshold=0.5):
             importances = pd.Series(
                 data=classifier.feature_importances_, index=feature_names
             )
-            # Mostramos o Top 20 para o terminal não ficar ilegível com 104 colunas
             print(importances.sort_values(ascending=False).head(20))
         except Exception as e:
             print(f"Erro ao mapear importâncias: {e}")
@@ -71,10 +68,9 @@ def evaluate_model(model, X_test, y_test, threshold=0.5):
     cm = confusion_matrix(y_test, y_pred)
 
     fig, ax = plt.subplots(figsize=(6, 5))
-    ConfusionMatrixDisplay.from_estimator(
-        model,
-        X_test,
+    ConfusionMatrixDisplay.from_predictions(
         y_test,
+        y_pred,
         ax=ax,
         cmap="Blues",
         display_labels=["Sem Risco", "Com Risco"],

@@ -33,7 +33,7 @@ def test_model_prediction_mechanics():
     """
     model = joblib.load(MODEL_PATH)
 
-    # Colunas EXATAS que o modelo treinado espera, baseadas no src/train.py e AlunoRequest
+    # Colunas EXATAS que o modelo treinado espera (create_features + pipeline)
     input_data = pd.DataFrame(
         {
             "IAA": [5.5, np.nan],
@@ -42,16 +42,13 @@ def test_model_prediction_mechanics():
             "IDA": [8.0, 6.0],
             "IPV": [9.0, 7.0],
             "Idade": [15, 16],
-            # Variáveis Categóricas (Textos)
             "Fase": ["8", "9"],
             "Pedra": ["AGATA", "QUARTZO"],
             "Instituicao_de_ensino": ["Escola Publica", "ONG"],
             "Genero": ["F", "M"],
-            # Features de Interação
             "IEG_x_IDA": [48.0, 24.0],
             "IEG_x_IAA": [33.0, np.nan],
             "IPS_x_IDA": [56.0, 30.0],
-            "Pedra_Num": [2, 1],
             "Fase_Num": [8, 9],
         }
     )

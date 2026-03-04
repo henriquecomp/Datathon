@@ -48,7 +48,7 @@ def test_clean_data_full_cleaning():
                 5.0,
                 8.0,
             ],  # Nota acima de 10 deve virar 10, abaixo de 0 vira 0
-            "Texto_Cat": [" João ", "Mação", "NaN", "nan"],  # Textos categóricos
+            "Texto_Cat": [" João ", "Ação", "NaN", "nan"],  # Textos categóricos
             "Defasagem": [1, 2, -1, 0],
         }
     )
@@ -56,17 +56,14 @@ def test_clean_data_full_cleaning():
     # Act
     df_clean = clean_data(df_raw)
 
-    # Assert - Idades
     assert df_clean["Idade"].iloc[0] == 15.0
-    assert df_clean["Idade"].iloc[1] == 17.0  # Converteu a data
-    assert pd.isna(df_clean["Idade"].iloc[2])  # Anulou idade 4
-    assert pd.isna(df_clean["Idade"].iloc[3])  # Anulou idade 35
+    assert df_clean["Idade"].iloc[1] == 17.0 
+    assert pd.isna(df_clean["Idade"].iloc[2])  
+    assert pd.isna(df_clean["Idade"].iloc[3])  
 
-    # Assert - Notas (Clipping)
-    assert df_clean["IPS"].iloc[0] == 10.0  # Clipou no 10
-    assert df_clean["IPS"].iloc[1] == 0.0  # Clipou no 0
+    assert df_clean["IPS"].iloc[0] == 10.0
+    assert df_clean["IPS"].iloc[1] == 0.0 
 
-    # Assert - Textos
-    assert df_clean["Texto_Cat"].iloc[0] == "JOAO"  # Tirou espaço, upper e sem acento
-    assert df_clean["Texto_Cat"].iloc[1] == "MACAO"
-    assert pd.isna(df_clean["Texto_Cat"].iloc[2])  # "NaN" string virou null real
+    assert df_clean["Texto_Cat"].iloc[0] == "JOAO" 
+    assert df_clean["Texto_Cat"].iloc[1] == "ACAO"
+    assert pd.isna(df_clean["Texto_Cat"].iloc[2])  

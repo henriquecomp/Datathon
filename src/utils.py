@@ -48,10 +48,13 @@ def load_data(file_paths):
         },
     }
 
+    if not file_paths:
+        raise ValueError("file_paths não pode ser vazio.")
+
     for ano, path in file_paths.items():
         try:
             df = pd.read_csv(path, sep=";", encoding="utf-8")
-        except:
+        except (pd.errors.ParserError, UnicodeDecodeError):
             df = pd.read_csv(path, sep=",", encoding="utf-8")
 
         # CORREÇÃO CRÍTICA: Remove espaços invisíveis dos nomes das colunas antes de mapear
