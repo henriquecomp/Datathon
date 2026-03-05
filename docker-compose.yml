@@ -21,7 +21,7 @@ services:
     ports:
       - "5000:5000"
     # Iniciamos a interface gráfica do MLflow na porta 5000
-    command: mlflow ui --backend-store-uri sqlite:///mlflow.db --host 0.0.0.0 --port 5000
+    command: mlflow ui --backend-store-uri sqlite:///mlflow.db --host 0.0.0.0 --port 5000 --allowed-hosts "*" --cors-allowed-origins "*"
     volumes:
       - ./:/app
     restart: unless-stopped    
