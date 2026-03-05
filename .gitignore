@@ -12,8 +12,6 @@ dist/
 .ipynb_checkpoints/
 */.ipynb_checkpoints/*
 *.csv
-files/*.csv
-Datathon/files/*.csv
 *.pkl
 app/model/*.pkl
 models/*.pkl
