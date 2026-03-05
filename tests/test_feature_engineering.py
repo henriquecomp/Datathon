@@ -20,6 +20,7 @@ def test_create_features_success():
             "Fase": ["8", "ALFA"],
             "Pedra": ["AGATA", "TOPAZIO"],
             "Genero": ["MENINO", "MENINA"],
+            "Instituicao_de_ensino": ["ESCOLA PUBLICA", "PRIVADA - PROGRAMA DE APADRINHAMENTO"],
         }
     )
 
@@ -37,6 +38,10 @@ def test_create_features_success():
     # Assert — Genero padronizado (MENINO→MASCULINO, MENINA→FEMININO)
     assert X["Genero"].iloc[0] == "MASCULINO"
     assert X["Genero"].iloc[1] == "FEMININO"
+
+    # Assert — Instituição agrupada em 3 categorias
+    assert X["Instituicao_de_ensino"].iloc[0] == "PUBLICA"
+    assert X["Instituicao_de_ensino"].iloc[1] == "PRIVADA"
 
     # Assert — features criadas
     assert "IEG_x_IDA" in X.columns

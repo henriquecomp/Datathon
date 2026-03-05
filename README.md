@@ -192,7 +192,7 @@ curl -X POST http://localhost:8000/predict \
     "IPV": 7.0,
     "Idade": 15,
     "Fase": "8",
-    "Instituicao_de_ensino": "Escola Publica",
+    "Instituicao_de_ensino": "Publica",
     "Genero": "Masculino"
   }'
 ```

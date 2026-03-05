@@ -39,7 +39,7 @@ def test_predict_risk_high(mock_model):
             "IPV": 7.0,
             "Idade": 15,
             "Fase": "8",
-            "Instituicao_de_ensino": "Escola Publica",
+            "Instituicao_de_ensino": "Publica",
             "Genero": "Feminino",
         }
         response = client.post("/predict", json=payload)
@@ -64,7 +64,7 @@ def test_predict_risk_low():
             "IPV": 10.0,
             "Idade": 15,
             "Fase": "8",
-            "Instituicao_de_ensino": "Escola Publica",
+            "Instituicao_de_ensino": "Privada",
             "Genero": "Masculino",
         }
         response = client.post("/predict", json=payload)
@@ -85,7 +85,7 @@ def test_predict_model_not_loaded():
             "IPV": 0.0,
             "Idade": 15,
             "Fase": "8",
-            "Instituicao_de_ensino": "Escola Publica",
+            "Instituicao_de_ensino": "Publica",
             "Genero": "Feminino",
         }
         response = client.post("/predict", json=payload)
@@ -107,7 +107,7 @@ def test_prediction_internal_error():
             "IPV": 9.0,
             "Idade": 15,
             "Fase": "8",
-            "Instituicao_de_ensino": "Escola Publica",
+            "Instituicao_de_ensino": "Rede Decisao",
             "Genero": "Feminino",
         }
         response = client.post("/predict", json=payload)
@@ -120,7 +120,7 @@ def test_predict_invalid_nota_above_range():
     payload = {
         "IAA": 15.0, "IEG": 2.0, "IPS": 6.0, "IDA": 4.5, "IPV": 7.0,
         "Idade": 15, "Fase": "8",
-        "Instituicao_de_ensino": "Escola Publica", "Genero": "Feminino",
+        "Instituicao_de_ensino": "Publica", "Genero": "Feminino",
     }
     response = client.post("/predict", json=payload)
     assert response.status_code == 422
@@ -130,7 +130,7 @@ def test_predict_invalid_idade_out_of_range():
     payload = {
         "IAA": 5.0, "IEG": 2.0, "IPS": 6.0, "IDA": 4.5, "IPV": 7.0,
         "Idade": 200, "Fase": "8",
-        "Instituicao_de_ensino": "Escola Publica", "Genero": "Feminino",
+        "Instituicao_de_ensino": "Publica", "Genero": "Feminino",
     }
     response = client.post("/predict", json=payload)
     assert response.status_code == 422
@@ -140,7 +140,7 @@ def test_predict_invalid_genero():
     payload = {
         "IAA": 5.0, "IEG": 2.0, "IPS": 6.0, "IDA": 4.5, "IPV": 7.0,
         "Idade": 15, "Fase": "8",
-        "Instituicao_de_ensino": "Escola Publica", "Genero": "X",
+        "Instituicao_de_ensino": "Publica", "Genero": "X",
     }
     response = client.post("/predict", json=payload)
     assert response.status_code == 422
@@ -150,7 +150,7 @@ def test_predict_invalid_fase():
     payload = {
         "IAA": 5.0, "IEG": 2.0, "IPS": 6.0, "IDA": 4.5, "IPV": 7.0,
         "Idade": 15, "Fase": "invalido",
-        "Instituicao_de_ensino": "Escola Publica", "Genero": "Feminino",
+        "Instituicao_de_ensino": "Publica", "Genero": "Feminino",
     }
     response = client.post("/predict", json=payload)
     assert response.status_code == 422

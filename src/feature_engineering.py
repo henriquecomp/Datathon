@@ -18,6 +18,20 @@ def create_features(df):
     if "Genero" in df.columns:
         df["Genero"] = df["Genero"].replace({"MENINO": "MASCULINO", "MENINA": "FEMININO"})
 
+    # Padronização da Instituição de Ensino: agrupa em 3 categorias
+    if "Instituicao_de_ensino" in df.columns:
+        mapa_instituicao = {
+            "ESCOLA PUBLICA": "PUBLICA",
+            "ESCOLA JP II": "PUBLICA",
+            "CONCLUIU O 3O EM": "PUBLICA",
+            "NENHUMA DAS OPCOES ACIMA": "PUBLICA",
+            "PRIVADA *PARCERIAS COM BOLSA 100%": "PRIVADA",
+            "PRIVADA - PAGAMENTO POR *EMPRESA PARCEIRA": "PRIVADA",
+            "PRIVADA - PROGRAMA DE APADRINHAMENTO": "PRIVADA",
+            "BOLSISTA UNIVERSITARIO *FORMADO (A)": "PRIVADA",
+        }
+        df["Instituicao_de_ensino"] = df["Instituicao_de_ensino"].replace(mapa_instituicao)
+
     # Criação Nuances de Comportamento
     if all(c in df.columns for c in ["IEG", "IDA", "IAA", "IPS"]):
         df["IEG_x_IDA"] = df["IEG"] * df["IDA"]  # Esforço vs Resultado

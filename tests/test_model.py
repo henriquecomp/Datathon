@@ -43,7 +43,7 @@ def test_model_prediction_mechanics():
             "IDA": [8.0, 6.0],
             "IPV": [9.0, 7.0],
             "Idade": [15, 16],
-            "Instituicao_de_ensino": ["ESCOLA PUBLICA", "PRIVADA"],
+            "Instituicao_de_ensino": ["PUBLICA", "PRIVADA"],
             "Genero": ["FEMININO", "MASCULINO"],
             "IEG_x_IDA": [48.0, 24.0],
             "IEG_x_IAA": [33.0, np.nan],

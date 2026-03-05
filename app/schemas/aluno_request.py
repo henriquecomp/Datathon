@@ -13,19 +13,7 @@ def _normalizar(val: str) -> str:
 
 GENEROS_VALIDOS = {"FEMININO", "MASCULINO"}
 
-INSTITUICOES_VALIDAS = {
-    "BOLSISTA UNIVERSITARIO *FORMADO (A)",
-    "CONCLUIU O 3O EM",
-    "ESCOLA JP II",
-    "ESCOLA PUBLICA",
-    "NENHUMA DAS OPCOES ACIMA",
-    "PRIVADA",
-    "PRIVADA *PARCERIAS COM BOLSA 100%",
-    "PRIVADA - PAGAMENTO POR *EMPRESA PARCEIRA",
-    "PRIVADA - PROGRAMA DE APADRINHAMENTO",
-    "PUBLICA",
-    "REDE DECISAO",
-}
+INSTITUICOES_VALIDAS = {"PUBLICA", "PRIVADA", "REDE DECISAO"}
 
 
 class AlunoRequest(BaseModel):
@@ -37,7 +25,7 @@ class AlunoRequest(BaseModel):
     Idade: int = Field(..., ge=5, le=30, description="Idade do aluno (5 a 30)")
 
     Fase: str = Field(..., description="Fase escolar (ex: ALFA, 1, 8, 2A, FASE 3)")
-    Instituicao_de_ensino: str = Field(..., description="Nome da instituição de ensino")
+    Instituicao_de_ensino: str = Field(..., description="Tipo de instituição: PUBLICA, PRIVADA ou REDE DECISAO")
     Genero: str = Field(..., description="Gênero: FEMININO ou MASCULINO")
 
     @field_validator("Fase")
